@@ -1,0 +1,41 @@
+version: "2"
+
+services:
+  fpm:
+    image: bitnami/php-fpm
+    volumes:
+      - /Users/wzy/projects/wptphp/wechat-cx/demo/app:/app
+      - /Users/wzy/projects/wptphp/wechat-cx/demo/php-fpm.d:/opt/bitnami/php/etc/php-fpm.d
+      - /Users/wzy/projects/wptphp/wechat-cx/demo/php_etc/php.ini:/opt/bitnami/php/etc/php.ini
+    expose:
+      - 9000
+
+  nginx:
+    image: nginx
+    volumes:
+      - /Users/wzy/projects/wptphp/wechat-cx/demo/conf.d:/etc/nginx/conf.d
+    environment:
+      NGINX_PORT: 80
+    depends_on:
+      - fpm
+    ports:
+      - 8080:80
+
+  exporter:
+    image: bakins/php-fpm-exporter:v0.6.1
+    entrypoint: ["/php-fpm-exporter", "--endpoint", "http://nginx:80/status?full", "--addr", "0.0.0.0:8080"]
+    expose:
+      - 8080
+    ports:
+      - 8081:8080
+    depends_on:
+      - nginx
+
+  prom:
+    image: prom/prometheus
+    volumes:
+      - /Users/wzy/projects/wptphp/wechat-cx/demo/prom/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - exporter
+    ports:
+      - 9090:9090
